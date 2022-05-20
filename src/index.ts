@@ -239,21 +239,24 @@ const printCrossedMarket = (crossedPair: CrossedPairDetails): void => {
   );
 };
 
+const scan = async (provider: providers.JsonRpcProvider, data: any, baseToken: string) => {
+  try {
+    await updateReservesAll(provider, data.allMarketPairs);
+    const bestCrossedMarkets = await evaluateMarkets(data.marketsByToken, baseToken);
+    bestCrossedMarkets.forEach(printCrossedMarket);
+    console.log(`\r\n=====================`);
+    console.log(`Update for blockNumber: ${provider.blockNumber}`);
+    console.log(`Profitable pairs found: ${bestCrossedMarkets.length}`);
+  } catch {}
+  await scan(provider, data, baseToken);
+};
+
 async function main() {
   const baseToken = Config.baseToken;
   console.log(`Running on chain: ${process.env.CHAIN}`);
   const data = await getUniswapPoolsFromFactories(provider, Config.factories, baseToken);
   console.log(`Processing ${data.allMarketPairs.length} pairs`);
-  provider.on('block', async (blockNumber) => {
-    try {
-      await updateReservesAll(provider, data.allMarketPairs);
-      const bestCrossedMarkets = await evaluateMarkets(data.marketsByToken, baseToken);
-      bestCrossedMarkets.forEach(printCrossedMarket);
-      console.log(`\r\n=====================`);
-      console.log(`Update for blockNumber: ${blockNumber}`);
-      console.log(`Profitable pairs found: ${bestCrossedMarkets.length}`);
-    } catch {}
-  });
+  await scan(provider, data, baseToken);
 }
 
 main();
